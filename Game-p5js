@@ -1,0 +1,130 @@
+// width,height
+let img
+let oh, ow
+let rh, rw
+let fh, fw
+let bearh, bearw
+let bh, bw
+//  position
+let mouseRadius = 200
+let rabbitP = [450, 110];
+let owlP = [600, 10];
+let frogP = [90, 380];
+let bearP = [700, 220];
+let birdP = [100, 100];
+//let draw
+let drawRabbit = true
+let drawOwl = true
+let drawFrog = true
+let drawBear = true
+let drawBird = true
+// Timer
+let timer = 60 
+
+
+function preload() {
+  img = loadImage('1.jpg');
+  songbackground = loadSound('Forest.mp3');
+}
+
+function setup() {
+  createCanvas(1480, 1000);
+  rh = height / 10
+  rw = width / 10
+  imgrabbit = loadImage('rabbit.png');
+  fh = height / 14
+  fw = width / 16
+  imgfrog = loadImage('frog-1.png');
+  oh = height / 16
+  ow = width / 16
+  imgowl = loadImage('owl.png');
+  bearh = height / 14
+  bearw = width / 14
+  imgbear = loadImage('bear.png');
+  bh = height / 14
+  bw = width / 14
+  imgbird = loadImage('bird.png');
+
+  song = loadSound('clicksound.mp3');
+  
+  songbackground.setVolume(0.1);
+  songbackground.play();
+}
+
+
+function draw() {
+  background(0,0,0);
+  image(img, 0, 0,);
+  noStroke()
+ 
+//   Timer setting
+  textAlign(CENTER);
+  textSize(50);
+  text(timer, 50, 50);
+  fill(255);
+  if (frameCount % 60 == 0 && timer > 0) { // if the frameCount is divisible by 60, then a second has passed. it will stop at 0
+    timer --;
+  }
+  if (timer == 0) {
+    text("GAME OVER", 400, 250);
+    songbackground.stop();
+  }
+  
+//   Animals draw
+  if (overlap(rabbitP[0], rabbitP[1]) && drawRabbit) {
+    image(imgrabbit, rabbitP[0], rabbitP[1], rh, rw);
+  }
+  if (overlap(frogP[0], frogP[1]) && drawFrog) {
+    image(imgfrog, frogP[0], frogP[1], fh, fw);
+  }
+  if (overlap(owlP[0], owlP[1]) && drawOwl) {
+    image(imgowl, owlP[0], owlP[1], oh, ow);
+  }
+  if (overlap(bearP[0], bearP[1]) && drawBear) {
+    image(imgbear, bearP[0], bearP[1], bearh, bearw);
+  }
+  if (overlap(birdP[0], birdP[1]) && drawBird) {
+    image(imgbird, birdP[0], birdP[1], bh, bw);
+  }
+
+//   ellipse draw
+  push();
+  blendMode(EXCLUSION); //BLEND-FLEXIBLE https://p5js.org/reference/#/p5/blendMode
+  fill('#F4F4F4'); //COLOR-FLEXIBLE https://p5js.org/reference/#/p5/fill
+  ellipse(mouseX, mouseY, mouseRadius);
+  pop();
+
+}
+
+
+function overlap(px, py) {
+  centerX = px + (rw / 2);
+  centerY = py + (rh / 2);
+  distance = sqrt(pow(centerX - mouseX, 2) + pow(centerY - mouseY, 2));
+  return distance < mouseRadius / 2;
+  //print(distance);
+}
+
+function mouseClicked() {
+  if (overlap(rabbitP[0], rabbitP[1])) {
+    drawRabbit = false;
+    song.play();
+  }
+  if (overlap(owlP[0], owlP[1])) {
+    drawOwl = false;
+    song.play();
+  }
+  if (overlap(frogP[0], frogP[1])) {
+    drawFrog = false;
+    song.play();
+  }
+  if (overlap(bearP[0], bearP[1])) {
+    drawBear = false;
+    song.play();
+  }
+  if (overlap(birdP[0], birdP[1])) {
+    drawBird = false;
+    song.play();
+  }
+  
+}

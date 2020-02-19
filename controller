@@ -1,0 +1,151 @@
+//Reference code:
+//By Jon Froehlich
+//@jonfroehlich
+//https://github.com/jonfroehlich/arduino/blob/master/GameController/4Button2AxisJoystick/4Button2AxisJoystick.ino
+
+
+
+#include <Keyboard.h> // https://www.arduino.cc/reference/en/language/functions/usb/keyboard/
+#include <Mouse.h> // https://www.arduino.cc/reference/en/language/functions/usb/mouse/
+
+
+const int BUTTON_MOUSE_CLICK_PIN = 6;
+const int BUTTON_MOUSE_TOGGLE_PIN = 7;
+
+const int JOYSTICK_UPDOWN_PIN = A0;
+const int JOYSTICK_LEFTRIGHT_PIN = A1;
+
+// The joysticks orientation with respect to the user
+// We need this because sometimes we have to place a joystick
+// upside down, etc. in our designs
+enum JoystickYDirection {
+  UP,
+  RIGHT,
+  DOWN,
+  LEFT
+};
+
+enum JoystickYDirection joystickYDir = RIGHT;
+
+const int MAX_ANALOG_VAL = 1023;
+const int JOYSTICK_CENTER_VALUE = int(MAX_ANALOG_VAL / 2);
+
+// Sets the overall amount of movement in either X or Y direction
+// that will trigger the Arduino board *sending* a Mouse.move()
+// command to the computer
+const int JOYSTICK_MOVEMENT_THRESHOLD = 12; 
+
+// Sets the overall mouse sensitivity based on joystick movement
+// a higher value will move the mouse more with joystick movement
+const int MAX_MOUSE_MOVE_VAL = 30; 
+
+boolean isMouseClick = false;
+boolean isMouseActive = true;
+int prevButtonMouseToggleVal = HIGH;
+
+void setup() {
+  pinMode(BUTTON_MOUSE_CLICK_PIN, INPUT_PULLUP);
+  pinMode(BUTTON_MOUSE_TOGGLE_PIN, INPUT_PULLUP);
+
+  // Turn on serial for debugging
+  Serial.begin(9600); 
+  Keyboard.begin();
+  activateMouse(true);
+}
+
+void activateMouse(boolean turnMouseOn){
+  if(turnMouseOn){
+    Serial.println("*** Activating mouse! ***"); 
+    Mouse.begin();
+  }else{
+    Serial.println("*** Deactivating mouse! ***");
+    Mouse.end();
+  }
+
+  isMouseActive = turnMouseOn;
+}
+
+void loop() {
+
+  int buttonMouseClickVal = digitalRead(BUTTON_MOUSE_CLICK_PIN);
+  int buttonMouseToggleVal = digitalRead(BUTTON_MOUSE_TOGGLE_PIN);
+
+  if(buttonMouseToggleVal != prevButtonMouseToggleVal){
+    if(buttonMouseToggleVal == LOW && isMouseActive == false){
+      activateMouse(true);
+    }else if(buttonMouseToggleVal == LOW && isMouseActive == true){
+      activateMouse(false);
+    }
+  }
+
+  /** HANDLE JOYSTICK INPUT AS MOUSE **/
+  int joystickUpDownVal = analogRead(JOYSTICK_UPDOWN_PIN);
+  int joystickLeftRightVal = analogRead(JOYSTICK_LEFTRIGHT_PIN);
+
+  // If hooked up on the breadboard, we often have to 
+  // install the joystick in a different orientation than
+  // with the Y up direction facing up. The code below
+  // handles the different orientations
+  if(joystickYDir == RIGHT){
+    int tmpX = joystickLeftRightVal;
+    joystickLeftRightVal = joystickUpDownVal;
+    joystickUpDownVal = MAX_ANALOG_VAL - tmpX;
+  }else if(joystickYDir == DOWN){
+    joystickUpDownVal = MAX_ANALOG_VAL - joystickUpDownVal;
+    joystickLeftRightVal = MAX_ANALOG_VAL - joystickLeftRightVal;
+  }else if(joystickYDir == LEFT){
+    int tmpX = joystickLeftRightVal;
+    joystickLeftRightVal = MAX_ANALOG_VAL - joystickUpDownVal;
+    joystickUpDownVal = tmpX;
+  }
+
+  Serial.print("joystickLeftRightVal: ");
+  Serial.print(joystickLeftRightVal);
+  Serial.print(" joystickUpDownVal: ");
+  Serial.println(joystickUpDownVal);
+
+  int yDistFromCenter = joystickUpDownVal - JOYSTICK_CENTER_VALUE;
+  int xDistFromCenter = joystickLeftRightVal - JOYSTICK_CENTER_VALUE;
+  
+  Serial.print("xDistFromCenter: ");
+  Serial.print(xDistFromCenter);    
+  Serial.print(" yDistFromCenter: ");
+  Serial.println(yDistFromCenter);
+
+  int yMouse = 0, xMouse = 0;
+  if(abs(yDistFromCenter) > JOYSTICK_MOVEMENT_THRESHOLD){
+    yMouse = map(joystickUpDownVal, 0, MAX_ANALOG_VAL, MAX_MOUSE_MOVE_VAL, -MAX_MOUSE_MOVE_VAL);
+  }
+  
+  if(abs(xDistFromCenter) > JOYSTICK_MOVEMENT_THRESHOLD){
+    xMouse = map(joystickLeftRightVal, 0, MAX_ANALOG_VAL, -MAX_MOUSE_MOVE_VAL, MAX_MOUSE_MOVE_VAL);
+  }
+
+  if(isMouseActive){
+    Mouse.move(xMouse, yMouse, 0);
+  }        
+
+  /** HANDLE BUTTON INPUT AS KEYBOARD **/
+  int numButtonsPressed = 0;
+  
+  // List of non-alphanumerica keys:
+  
+
+  if(buttonMouseClickVal == LOW){
+    isMouseClick = true;
+    Mouse.click();
+    Serial.print("MOUSE CLICK: Pressed\t");
+    isMouseClick = true;
+//    numButtonsPressed++;
+  }else if(isMouseClick == true && buttonMouseClickVal == HIGH){
+  Mouse.release();
+    isMouseClick = false;
+  }
+  
+  delay(50);
+
+  if(numButtonsPressed > 0){
+    Serial.println();
+  }
+  prevButtonMouseToggleVal = buttonMouseToggleVal;
+}
